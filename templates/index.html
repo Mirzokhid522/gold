@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Macro Sentiment Gauge</title>
+    <title>USD Macro Sentiment Gauge</title>
     <style>
         html, body {
             background-color: #191919 !important;
@@ -222,16 +222,17 @@
 
                 tooltip.style.opacity = '1';
                 
+                // Updated tooltips matching the 0.5 / 0.1 threshold scheme
                 if (angle >= Math.PI && angle < Math.PI + 1.22) {
-                    tooltip.innerText = "Very Bearish (Score < -0.3)";
+                    tooltip.innerText = "Very Bearish USD (Score < -0.5)";
                 } else if (angle >= Math.PI + 1.22 && angle < Math.PI + 1.48) {
-                    tooltip.innerText = "Bearish (Score < -0.06)";
+                    tooltip.innerText = "Bearish USD (Score < -0.1)";
                 } else if (angle >= Math.PI + 1.48 && angle < Math.PI + 1.66) {
-                    tooltip.innerText = "Neutral";
+                    tooltip.innerText = "Neutral USD (-0.1 to 0.1)";
                 } else if (angle >= Math.PI + 1.66 && angle < Math.PI + 1.92) {
-                    tooltip.innerText = "Bullish (Score > 0.06)";
+                    tooltip.innerText = "Bullish USD (Score > 0.1)";
                 } else {
-                    tooltip.innerText = "Very Bullish (Score > 0.3)";
+                    tooltip.innerText = "Very Bullish USD (Score > 0.5)";
                 }
             } else {
                 tooltip.style.opacity = '0';
@@ -246,10 +247,8 @@
             try {
                 const response = await fetch('/api/score');
                 const data = await response.json();
-                
-                // If the backend returns the exact string from the Notion database Bias property, 
-                // we can prioritize using data.status if available, falling back to score-based thresholds.
                 const score = data.score; 
+                const notionStatus = data.status; // Fetches the live formatted string from Notion
                 currentScore = score;
 
                 const minVal = -0.5;
@@ -275,36 +274,19 @@
                 const headerEl = document.getElementById('headerTitle');
                 const statusEl = document.getElementById('statusText');
                 
+                // Display the score number at the bottom text field
                 statusEl.innerText = score.toFixed(4);
 
-                // Use the database's explicit status label if returned from python, otherwise map cleanly
-                if (data.status && data.status !== "Error" && data.status !== "Neutral") {
-                    headerEl.innerText = data.status;
-                    const lowerStatus = data.status.toLowerCase();
-                    if (lowerStatus.includes("bullish")) {
-                        headerEl.style.backgroundColor = "#2f65d8";
-                    } else if (lowerStatus.includes("bearish")) {
-                        headerEl.style.backgroundColor = "#e05353";
-                    } else {
-                        headerEl.style.backgroundColor = "#555555";
-                    }
+                // Directly assign the text string pulled straight from your Notion Database 'Bias' property
+                headerEl.innerText = notionStatus;
+
+                // Dynamically adjust header background color based on the text content
+                if (notionStatus.includes("Bullish")) {
+                    headerEl.style.backgroundColor = "#2f65d8";
+                } else if (notionStatus.includes("Bearish")) {
+                    headerEl.style.backgroundColor = "#e05353";
                 } else {
-                    if (score > 0.3) {
-                        headerEl.innerText = "Very Bullish";
-                        headerEl.style.backgroundColor = "#2f65d8";
-                    } else if (score > 0.06) {
-                        headerEl.innerText = "Bullish";
-                        headerEl.style.backgroundColor = "#2f65d8";
-                    } else if (score < -0.3) {
-                        headerEl.innerText = "Very Bearish";
-                        headerEl.style.backgroundColor = "#e05353";
-                    } else if (score < -0.06) {
-                        headerEl.innerText = "Bearish";
-                        headerEl.style.backgroundColor = "#e05353";
-                    } else {
-                        headerEl.innerText = "Neutral";
-                        headerEl.style.backgroundColor = "#555555";
-                    }
+                    headerEl.style.backgroundColor = "#555555";
                 }
 
             } catch (error) {
